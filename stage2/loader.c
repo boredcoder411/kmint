@@ -13,10 +13,10 @@
 
 extern void div0_fault();
 
-void keyboard_handler(registers_t *regs) {
-  serial_print(itoa(regs->int_no));
-  serial_print("\n");
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+void keyboard_handler(registers_t *r) {
   uint8_t scancode = inb(0x60);
+  serial_print("keyboard: ");
   serial_print(itoa(scancode));
   serial_print("\n");
 }
