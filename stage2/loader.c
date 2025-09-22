@@ -1,13 +1,12 @@
 #include <stdint.h>
 #include <stdbool.h>
-#include "utils.h"
-#include "vga.h"
-#include "serial.h"
+#include "dev/vga.h"
 #include "cpu/interrupts/idt.h"
 #include "cpu/interrupts/isr.h"
 #include "cpu/interrupts/irq.h"
 #include "cpu/pic/pic.h"
 #include "cpu/pit/pit.h"
+#include "dev/keyboard.h"
 
 extern void enable_fpu();
 
@@ -108,14 +107,6 @@ void draw_cube() {
   angle_x += 0.02f;
   angle_y += 0.03f;
   angle_z += 0.015f;
-}
-
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-void keyboard_handler(registers_t *r) {
-  uint8_t scancode = inb(0x60);
-  serial_print("keyboard: ");
-  serial_print(itoa(scancode));
-  serial_print("\n");
 }
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
