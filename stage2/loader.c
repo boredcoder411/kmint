@@ -126,8 +126,7 @@ void loader_start() {
   install_irq(0, pit_handler);
   pic_clear_mask(0);
   enable_fpu();
-  install_irq(1, keyboard_handler);
-  pic_clear_mask(1);
+  install_keyboard();
   asm("sti");
 
   for (int x = 0; x < SCREEN_WIDTH; x++) {
