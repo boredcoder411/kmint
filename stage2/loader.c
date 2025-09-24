@@ -1,120 +1,87 @@
-#include <stdint.h>
-#include <stdbool.h>
 #include "cpu/interrupts/idt.h"
-#include "cpu/interrupts/isr.h"
 #include "cpu/interrupts/irq.h"
+#include "cpu/interrupts/isr.h"
 #include "cpu/pic/pic.h"
 #include "cpu/pit/pit.h"
-#include "dev/vga.h"
 #include "dev/keyboard.h"
 #include "dev/serial.h"
-#include "utils.h"
+#include "dev/vga.h"
 #include "mem.h"
+#include "utils.h"
+#include <stdbool.h>
+#include <stdint.h>
+
+#define STACK_SIZE 4096
 
 extern void enable_fpu();
 
-float cosf(float x) {
-  float result = 1.0f;
-  float term = 1.0f;
-  for (int n = 1; n < 10; n++) {
-    term *= -x * x / (2 * n * (2 * n - 1));
-    result += term;
-  }
-  return result;
+typedef struct task {
+  uint32_t *stack;
+  int id;
+  struct task *next;
+  registers_t *state;
+} task_t;
+
+task_t *current = NULL;
+
+void schedule() {
+  if (current == NULL)
+    return;
+  current = current->next;
+  serial_print("switching to: ");
+  serial_print(int_to_str(current->id));
+  serial_print("\n");
 }
 
-float sinf(float x) {
-  float result = x;
-  float term = x;
-  for (int n = 1; n < 10; n++) {
-    term *= -x * x / (2 * n * (2 * n + 1));
-    result += term;
-  }
-  return result;
-}
-
-typedef struct {
-  float x, y, z;
-} Vec3;
-
-typedef struct {
-  int x, y;
-} Vec2;
-
-#define CUBE_SIZE 40
-Vec3 cube_vertices[8] = {
-  {-1, -1, -1}, {1, -1, -1},
-  {1,  1, -1}, {-1,  1, -1},
-  {-1, -1,  1}, {1, -1,  1},
-  {1,  1,  1}, {-1,  1,  1}
-};
-
-int cube_edges[12][2] = {
-  {0,1}, {1,2}, {2,3}, {3,0},
-  {4,5}, {5,6}, {6,7}, {7,4},
-  {0,4}, {1,5}, {2,6}, {3,7}
-};
-
-float angle_x = 0.0f;
-float angle_y = 0.0f;
-float angle_z = 0.0f;
-
-#define CX (SCREEN_WIDTH / 2)
-#define CY (SCREEN_HEIGHT / 2)
-
-Vec2 project(Vec3 v) {
-  float scale = CUBE_SIZE;
-  float dist = 3.0f;
-  float z = v.z + dist;
-  float px = (v.x / z) * scale + CX;
-  float py = (v.y / z) * scale + CY;
-  return (Vec2){ (int)px, (int)py };
-}
-
-void draw_cube() {
-  for (int x = 0; x < SCREEN_WIDTH; x++) {
-    for (int y = 0; y < SCREEN_HEIGHT; y++) {
-      put_pixel(x, y, 0);
-    }
-  }
-
-  if (angle_x > 6.283185f) angle_x -= 6.283185f;
-  if (angle_y > 6.283185f) angle_y -= 6.283185f;
-  if (angle_z > 6.283185f) angle_z -= 6.283185f;
-
-  Vec2 projected[8];
-  for (int i = 0; i < 8; i++) {
-    Vec3 v = cube_vertices[i];
-
-    float y = v.y * cosf(angle_x) - v.z * sinf(angle_x);
-    float z = v.y * sinf(angle_x) + v.z * cosf(angle_x);
-    v.y = y; v.z = z;
-
-    float x = v.x * cosf(angle_y) + v.z * sinf(angle_y);
-    z = -v.x * sinf(angle_y) + v.z * cosf(angle_y);
-    v.x = x; v.z = z;
-
-    x = v.x * cosf(angle_z) - v.y * sinf(angle_z);
-    y = v.x * sinf(angle_z) + v.y * cosf(angle_z);
-    v.x = x; v.y = y;
-
-    projected[i] = project(v);
-  }
-
-  for (int i = 0; i < 12; i++) {
-    Vec2 p1 = projected[cube_edges[i][0]];
-    Vec2 p2 = projected[cube_edges[i][1]];
-    draw_line(p1.x, p1.y, p2.x, p2.y, 15);
-  }
-
-  angle_x += 0.02f;
-  angle_y += 0.03f;
-  angle_z += 0.015f;
-}
-
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 void pit_handler(registers_t *r) {
-  draw_cube();
+  current->state = r;
+  schedule();
+  *r = *current->state;
+}
+
+task_t *create_task(void (*entry)(), int id) {
+  task_t *t = (task_t *)kmalloc(sizeof(task_t));
+
+  uint32_t *stack = (uint32_t *)kmalloc(STACK_SIZE);
+  memset(stack, 0, STACK_SIZE);
+
+  registers_t *state =
+      (registers_t *)((uint8_t *)stack);
+  memset(state, 0, sizeof(registers_t));
+
+  state->eip = (uint32_t)entry;
+  state->cs = 0x08;
+  state->eflags = 0x202;
+  state->esp = (uint32_t)(stack);
+  state->ss = 0x10;
+
+  t->id = id;
+  t->stack = stack;
+  t->state = state;
+  t->next = NULL;
+
+  return t;
+}
+
+void task1() {
+  asm("sti");
+  while (1) {
+    serial_print("task 1\n");
+  }
+}
+
+void task2() {
+  asm("sti");
+  while (1) {
+    serial_print("task 2\n");
+  }
+}
+
+void task3() {
+  asm("sti");
+  while (1) {
+    serial_print("task 3\n");
+  }
 }
 
 void loader_start() {
@@ -130,23 +97,26 @@ void loader_start() {
   pic_clear_mask(0);
   enable_fpu();
   install_keyboard();
-  asm("sti");
 
-  for (int x = 0; x < SCREEN_WIDTH; x++) {
-    for (int y = 0; y < SCREEN_HEIGHT; y++) {
-      put_pixel(x, y, 0);
-    }
-  }
+  memset(VIDEO_MEMORY, 0, 320 * 200);
 
-  e820_entry_t* mem_map = (e820_entry_t*)0x9000;
-  uint16_t entry_count = (*(uint16_t*)0x8E00);
+  e820_entry_t *mem_map = (e820_entry_t *)0x9000;
+  uint16_t entry_count = (*(uint16_t *)0x8E00);
 
   init_alloc(entry_count, mem_map);
 
-  uint32_t page1 = alloc_pages(1);
-  serial_print("Kernel allocator returned: ");
-  serial_print(uint_to_hex(page1));
-  serial_print("\n");
+  task_t *t1 = create_task(task1, 1);
+  task_t *t2 = create_task(task2, 2);
+  task_t *t3 = create_task(task3, 3);
 
-  while (1);
+  t1->next = t2;
+  t2->next = t3;
+  t3->next = t1;
+
+  current = t1;
+
+  asm("sti");
+
+  while (1)
+    ;
 }
