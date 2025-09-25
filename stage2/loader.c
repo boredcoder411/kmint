@@ -34,9 +34,9 @@ void schedule() {
 }
 
 void pit_handler(registers_t *r) {
-  current->state = r;
+  memcpy(current->state, r, sizeof(registers_t));
   schedule();
-  *r = *current->state;
+  memcpy(r, current->state, sizeof(registers_t));
 }
 
 task_t *create_task(void (*entry)(), int id) {
