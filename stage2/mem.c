@@ -101,7 +101,7 @@ void *memcpy(void *dst, void *src, size_t n) {
   return dst;
 }
 
-uint32_t alloc_page() {
+void* alloc_page() {
   uint32_t next_paddr = free_ram;
   uint32_t paddr = next_paddr;
   next_paddr += PAGE_SIZE;
@@ -113,7 +113,7 @@ uint32_t alloc_page() {
   }
 
   memset((void *)paddr, 0, PAGE_SIZE);
-  return paddr;
+  return (void *)paddr;
 }
 
 static block_header_t *free_list = NULL;
