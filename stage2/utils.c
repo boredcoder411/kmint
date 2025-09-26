@@ -53,7 +53,7 @@ char* uint_to_hex(uint64_t val) {
     return &buf[i+1];
 }
 
-char* hextoa(uint32_t val) {
+char* hextoa(uint64_t val) {
     static char buf[32] = {0};
     int i = 30;
     if (val == 0) return "0";
