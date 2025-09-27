@@ -16,71 +16,58 @@
 extern void enable_fpu();
 
 typedef struct task {
-  uint32_t *stack;
-  int id;
-  struct task *next;
-  registers_t *state;
+  registers_t context;
+  struct task* next;
 } task_t;
 
-task_t *current = NULL;
+static task_t *current = NULL;
+static task_t *kernel_task = NULL;
 
-void schedule() {
-  if (current == NULL)
-    return;
-  current = current->next;
-  serial_print("switching to: ");
-  serial_print(int_to_str(current->id));
-  serial_print("\n");
+void init_scheduler() {
+  kernel_task = (task_t *)alloc_page();
+  memset(kernel_task, 0, sizeof(task_t));
+  kernel_task->next = kernel_task;
+  current = kernel_task;
 }
 
 void pit_handler(registers_t *r) {
-  memcpy(current->state, r, sizeof(registers_t));
-  schedule();
-  memcpy(r, current->state, sizeof(registers_t));
+  if(current == NULL) return;
+
+  memcpy(&current->context, r, sizeof(registers_t));
+  current = current->next;
+  memcpy(r, &current->context, sizeof(registers_t));
 }
 
-task_t *create_task(void (*entry)(), int id) {
-  task_t *t = (task_t *)kmalloc(sizeof(task_t));
+void create_task(void (*entry)()) {
+  task_t *t = (task_t *)alloc_page();
+  memset(t, 0, sizeof(task_t));
 
-  uint32_t *stack = (uint32_t *)kmalloc(STACK_SIZE);
-  memset(stack, 0, STACK_SIZE);
+  void *stack = alloc_page();
 
-  registers_t *state =
-      (registers_t *)((uint8_t *)stack);
-  memset(state, 0, sizeof(registers_t));
+  registers_t *initial_context = (registers_t*)((uint32_t)stack + STACK_SIZE - sizeof(registers_t));
+  memset(&initial_context->eax, 0, sizeof(uint32_t) * 8);
 
-  state->eip = (uint32_t)entry;
-  state->cs = 0x08;
-  state->eflags = 0x202;
-  state->esp = (uint32_t)(stack);
-  state->ss = 0x10;
+  initial_context->eip = (uint32_t)entry;
+  initial_context->cs = 0x08;
+  initial_context->eflags = 0x202;
+  initial_context->ss = 0x10;
 
-  t->id = id;
-  t->stack = stack;
-  t->state = state;
-  t->next = NULL;
+  initial_context->esp = (uint32_t)initial_context;
+  memcpy(&t->context, initial_context, sizeof(registers_t));
 
-  return t;
+  t->next = kernel_task->next;
+  kernel_task->next = t;
 }
 
 void task1() {
-  asm("sti");
   while (1) {
     serial_print("task 1\n");
   }
 }
 
 void task2() {
-  asm("sti");
   while (1) {
     serial_print("task 2\n");
-  }
-}
-
-void task3() {
-  asm("sti");
-  while (1) {
-    serial_print("task 3\n");
   }
 }
 
@@ -105,18 +92,14 @@ void loader_start() {
 
   init_alloc(entry_count, mem_map);
 
-  task_t *t1 = create_task(task1, 1);
-  task_t *t2 = create_task(task2, 2);
-  task_t *t3 = create_task(task3, 3);
+  init_scheduler();
 
-  t1->next = t2;
-  t2->next = t3;
-  t3->next = t1;
-
-  current = t1;
+  create_task(task1);
+  create_task(task2);
 
   asm("sti");
 
-  while (1)
-    ;
+  while (1) {
+    serial_print("kernel is running\n");
+  }
 }

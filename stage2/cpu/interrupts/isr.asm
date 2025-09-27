@@ -59,7 +59,6 @@ isr_no_err_stub 31
 
 isr_common:
     pusha
-    push ds
     mov ax, 0x10
     mov ds, ax
     mov es, ax
@@ -70,7 +69,6 @@ isr_common:
     call isr_handler
     add esp, 4
 
-    pop ds
     popa
     add esp, 8
     iret

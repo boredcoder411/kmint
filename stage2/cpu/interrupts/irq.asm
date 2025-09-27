@@ -37,7 +37,6 @@ irq_stub 15
 
 irq_common:
     pusha
-    push ds
     mov ax, 0x10
     mov ds, ax
     mov es, ax
@@ -48,7 +47,6 @@ irq_common:
     call irq_dispatcher
     add esp, 4
 
-    pop ds
     popa
     add esp, 8
     iret
