@@ -1,0 +1,6 @@
+CompileFlags:
+  Add: [-ffreestanding,
+        -Wall,
+        -Wextra,
+        -Werror
+        -Istage2/]
