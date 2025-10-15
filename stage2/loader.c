@@ -1,5 +1,6 @@
 #include "cpu/interrupts/idt.h"
 #include "cpu/interrupts/isr.h"
+#include "cpu/interrupts/irq.h"
 #include "cpu/pic/pic.h"
 #include "cpu/pit/pit.h"
 #include "dev/disk.h"
