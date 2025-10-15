@@ -1,9 +1,10 @@
 #include "irq.h"
-#include "isr.h"
 #include "idt.h"
+#include "isr.h"
+#include "io.h"
+#include "utils.h"
 #include "dev/serial.h"
 #include "cpu/pic/pic.h"
-#include "utils.h"
 
 void (*irq_handlers[IRQs])(registers_t *regs) = {0};
 
@@ -12,7 +13,7 @@ void irq_dispatcher(registers_t* r) {
   serial_print("irq: ");
   serial_print(int_to_str(r->int_no));
   serial_print("\n");
-  irq_handlers[r->int_no](r);
+  irq_handlers[r->int_no - EXCEPTION_ISRS](r);
   pic_send_eoi(r->int_no);
   asm("sti");
 }

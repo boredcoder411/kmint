@@ -1,3 +1,4 @@
+; same as isr.asm but with irqs and no error codes
 [bits 32]
 
 %assign l 0
@@ -15,6 +16,26 @@ _irq%+%1:
     push 0
     push %1+32
     jmp irq_common
+%endmacro
+
+%macro pusha_c 0
+    push eax
+    push ebx
+    push ecx
+    push edx
+    push ebp
+    push esi
+    push edi
+%endmacro
+
+%macro popa_c 0
+    pop edi
+    pop esi
+    pop ebp
+    pop edx
+    pop ecx
+    pop ebx
+    pop eax
 %endmacro
 
 irq_stub 0
@@ -35,7 +56,7 @@ irq_stub 14
 irq_stub 15
 
 irq_common:
-    pusha
+    pusha_c
     mov ax, 0x10
     mov ds, ax
     mov es, ax
@@ -46,7 +67,7 @@ irq_common:
     call irq_dispatcher
     add esp, 4
 
-    popa
+    popa_c
     add esp, 8
     iret
 

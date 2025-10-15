@@ -66,6 +66,6 @@ void isr_handler(registers_t* r) {
 
 void install_exception_isrs() {
     for(int i = 0; i < EXCEPTION_ISRS; i++) {
-        idt_set_gate(i, (uint32_t)isr_stub_table[i], 0x08, 0x8E);
+        idt_set_gate(i, (unsigned)isr_stub_table[i], 0x08, 0x8E);
     }
 }
