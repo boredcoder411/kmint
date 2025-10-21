@@ -7,6 +7,7 @@
 #define HALT() asm("cli;hlt");
 #define CLI() asm("cli");
 #define STI() asm("sti");
+#define htons(x) ((((x) & 0xFF) << 8) | ((x) >> 8))
 
 char *int_to_str(int32_t val);
 char *uint_to_str(uint32_t val);
