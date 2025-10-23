@@ -108,7 +108,7 @@ assets.wad: psf wad_tool imf | $(BUILD)
 	$(BUILD)/wad_tool pack assets.wad IWAD $(BUILD)/font.psf $(BUILD)/icon.imf test_files/test.txt
 
 format:
-	@find stage2 tools -type f \( -name "*.c" -o -name "*.h" \) -exec clang-format -i {} +
+	@find . -type f \( -name "*.c" -o -name "*.h" \) -exec clang-format -i {} +
 
 clean:
 	rm -rf $(BUILD)

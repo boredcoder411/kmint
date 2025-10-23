@@ -1,5 +1,3 @@
-#include <stdbool.h>
-#include <stdint.h>
 #include "cpu/interrupts/idt.h"
 #include "cpu/interrupts/irq.h"
 #include "cpu/interrupts/isr.h"
@@ -13,14 +11,16 @@
 #include "mbr.h"
 #include "mem.h"
 #include "utils.h"
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifdef CUBE_DEMO
 #include "cube.c"
 #endif
 
 #ifdef TIME_DEMO
-#include "time.c"
 #include "psf.h"
+#include "time.c"
 #endif
 
 #ifdef NE2K_DEMO
