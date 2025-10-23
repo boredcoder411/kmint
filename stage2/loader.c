@@ -25,14 +25,18 @@
 
 #ifdef NE2K_DEMO
 #include "dev/pci.h"
+void ne2k_send_arp_request(void);
 #endif
 
 #ifdef PSF_DEMO
 #include "psf.h"
 #endif
 
+#ifdef E1K_DEMO
+#include "dev/pci.h"
+#endif
+
 extern void enable_fpu(void);
-void send_arp_request(void);
 
 #define E820_TABLE_ADDR ((e820_entry_t *)0x9000)
 #define E820_ENTRY_COUNT_ADDR ((uint16_t *)0x8E00)
@@ -100,7 +104,11 @@ void loader_start(void) {
 
 #ifdef NE2K_DEMO
   pci_enumerate();
-  send_arp_request();
+  ne2k_send_arp_request();
+#endif
+
+#ifdef E1K_DEMO
+  pci_enumerate();
 #endif
 
   STI()
