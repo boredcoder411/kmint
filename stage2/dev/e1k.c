@@ -136,38 +136,32 @@ int e1k_send(void *frame, size_t len) {
   return 0;
 }
 
-void e1k_init(uint8_t bus, uint8_t device, uint8_t func, uint16_t vendor,
-              uint16_t device_id) {
-  INFO("E1K", "init on %02x:%02x.%x (%04x:%04x)", bus, device, func, vendor,
-       device_id);
+void e1k_init(nic_descriptor nic_desc) {
+  nic_e1k = nic_desc;
 
-  uint16_t cmd = pci_config_read_word(bus, device, func, 0x04);
+  INFO("E1K", "init on %02x:%02x.%x (%04x:%04x)", nic_e1k.desc.bus,
+       nic_e1k.desc.device, nic_e1k.desc.function,
+       nic_e1k.desc.dev_info.vendor_id, nic_e1k.desc.dev_info.device_id);
+
+  uint16_t cmd = pci_config_read_word(&nic_e1k.desc, 0x04);
   cmd |= (1 << 2);
 
-  if (&pci_config_write_word) {
-    pci_config_write_word(bus, device, func, 0x04, cmd);
-  } else {
-    uint32_t address = (1U << 31) | ((uint32_t)bus << 16) |
-                       ((uint32_t)device << 11) | ((uint32_t)func << 8) |
-                       (0x04 & 0xFC);
-    outl(0xCF8, address);
-    outl(0xCFC, (cmd | ((uint32_t)cmd << 16)));
-  }
+  pci_config_write_word(&nic_e1k.desc, 0x04, cmd);
 
-  uint16_t cmd_check = pci_config_read_word(bus, device, func, 0x04);
+  uint16_t cmd_check = pci_config_read_word(&nic_e1k.desc, 0x04);
   if (!(cmd_check & (1 << 2))) {
     INFO("E1K", "Warning: failed to enable bus mastering (cmd=0x%04x)",
          cmd_check);
   }
 
-  uint32_t bar0 = pci_config_read(bus, device, func, 0x10);
+  uint32_t bar0 = pci_config_read(&nic_e1k.desc, 0x10);
   uint64_t mmio_base_64 = 0;
   if (bar0 & 0x1) {
     uint32_t io_base = bar0 & ~0x3U;
     nic_e1k.desc.io_base = (uintptr_t)io_base;
     INFO("E1K", "IO BAR detected: 0x%08x", io_base);
   } else {
-    uint32_t bar1 = pci_config_read(bus, device, func, 0x14);
+    uint32_t bar1 = pci_config_read(&nic_e1k.desc, 0x14);
     mmio_base_64 = (((uint64_t)bar1) << 32) | (bar0 & ~0xFULL);
 
     uint32_t mmio_base = (uint32_t)mmio_base_64;

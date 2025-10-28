@@ -13,8 +13,8 @@ pci_device_info_t pci_device_table[] = {
 #define PCI_DEVICE_TABLE_SIZE                                                  \
   (sizeof(pci_device_table) / sizeof(pci_device_table[0]))
 
-uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t func,
-                         uint8_t offset) {
+uint32_t pci_config_read_raw(uint8_t bus, uint8_t slot, uint8_t func,
+                             uint8_t offset) {
   uint32_t address = (1U << 31) | ((uint32_t)bus << 16) |
                      ((uint32_t)slot << 11) | ((uint32_t)func << 8) |
                      (offset & 0xFC);
@@ -22,14 +22,14 @@ uint32_t pci_config_read(uint8_t bus, uint8_t slot, uint8_t func,
   return inl(PCI_CONFIG_DATA);
 }
 
-uint16_t pci_config_read_word(uint8_t bus, uint8_t device, uint8_t func,
-                              uint8_t offset) {
-  uint32_t data = pci_config_read(bus, device, func, offset & 0xFC);
+uint16_t pci_config_read_word_raw(uint8_t bus, uint8_t device, uint8_t func,
+                                  uint8_t offset) {
+  uint32_t data = pci_config_read_raw(bus, device, func, offset & 0xFC);
   return (uint16_t)((data >> ((offset & 2) * 8)) & 0xFFFF);
 }
 
-void pci_config_write_word(uint8_t bus, uint8_t device, uint8_t func,
-                           uint8_t offset, uint16_t value) {
+void pci_config_write_word_raw(uint8_t bus, uint8_t device, uint8_t func,
+                               uint8_t offset, uint16_t value) {
   uint32_t aligned_offset = offset & 0xFC;
 
   uint32_t address = (1U << 31) | ((uint32_t)bus << 16) |
@@ -48,8 +48,22 @@ void pci_config_write_word(uint8_t bus, uint8_t device, uint8_t func,
   outl(PCI_CONFIG_DATA, data);
 }
 
+uint32_t pci_config_read(const pci_device_desc_t *dev, uint8_t offset) {
+  return pci_config_read_raw(dev->bus, dev->device, dev->function, offset);
+}
+
+uint16_t pci_config_read_word(const pci_device_desc_t *dev, uint8_t offset) {
+  return pci_config_read_word_raw(dev->bus, dev->device, dev->function, offset);
+}
+
+void pci_config_write_word(const pci_device_desc_t *dev, uint8_t offset,
+                           uint16_t value) {
+  return pci_config_write_word_raw(dev->bus, dev->device, dev->function, offset,
+                                   value);
+}
+
 void pci_enable_busmaster(uint8_t bus, uint8_t dev, uint8_t func) {
-  uint16_t cmd = pci_config_read_word(bus, dev, func, PCI_COMMAND);
+  uint16_t cmd = pci_config_read_word_raw(bus, dev, func, PCI_COMMAND);
   cmd |= (1 << 2);
   uint32_t address = (1U << 31) | ((uint32_t)bus << 16) |
                      ((uint32_t)dev << 11) | ((uint32_t)func << 8) |
@@ -59,7 +73,7 @@ void pci_enable_busmaster(uint8_t bus, uint8_t dev, uint8_t func) {
 }
 
 inline uint32_t pci_read_bar0(uint8_t bus, uint8_t dev, uint8_t func) {
-  return pci_config_read(bus, dev, func, PCI_BAR0);
+  return pci_config_read_raw(bus, dev, func, PCI_BAR0);
 }
 
 const char *pci_lookup_device(uint16_t vendor_id, uint16_t device_id) {
@@ -77,15 +91,15 @@ void pci_enumerate() {
     for (uint8_t device = 0; device < 32; device++) {
       for (uint8_t func = 0; func < 8; func++) {
 
-        uint16_t vendor = pci_config_read_word(bus, device, func, 0x00);
+        uint16_t vendor = pci_config_read_word_raw(bus, device, func, 0x00);
         if (vendor == 0xFFFF)
           continue;
 
-        uint16_t device_id = pci_config_read_word(bus, device, func, 0x02);
+        uint16_t device_id = pci_config_read_word_raw(bus, device, func, 0x02);
         uint8_t class_code =
-            (pci_config_read(bus, device, func, 0x08) >> 24) & 0xFF;
+            (pci_config_read_raw(bus, device, func, 0x08) >> 24) & 0xFF;
         uint8_t subclass =
-            (pci_config_read(bus, device, func, 0x08) >> 16) & 0xFF;
+            (pci_config_read_raw(bus, device, func, 0x08) >> 16) & 0xFF;
 
         serial_printf("PCI Device found: bus=%u, dev=%u, func=%u\n", bus,
                       device, func);
