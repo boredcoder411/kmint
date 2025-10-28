@@ -7,6 +7,11 @@
 #define PCI_CONFIG_DATA 0xCFC
 #define PCI_COMMAND 0x04
 #define PCI_BAR0 0x10
+#define PCI_BAR1 0x14
+#define PCI_BAR2 0x18
+#define PCI_BAR3 0x1c
+#define PCI_BAR4 0x20
+#define PCI_BAR5 0x24
 
 typedef struct {
   uint16_t vendor_id;
@@ -23,7 +28,6 @@ typedef struct {
   uint32_t io_base;
   int irq;
   bool enabled;
-  void *driver_data;
 } pci_device_desc_t;
 
 uint32_t pci_config_read(const pci_device_desc_t *dev, uint8_t offset);
@@ -33,5 +37,4 @@ void pci_config_write_word(const pci_device_desc_t *dev, uint8_t offset,
 
 const char *pci_lookup_device(uint16_t vendor_id, uint16_t device_id);
 void pci_enumerate();
-void pci_handle_device(uint8_t bus, uint8_t device, uint8_t func,
-                       uint16_t vendor, uint16_t device_id);
+void pci_handle_device(pci_device_desc_t desc);

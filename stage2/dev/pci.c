@@ -1,6 +1,7 @@
 #include "dev/pci.h"
 #include "dev/serial.h"
 #include "io.h"
+#include "mem.h"
 #include <stddef.h>
 #include <stdint.h>
 
@@ -72,8 +73,31 @@ void pci_enable_busmaster(uint8_t bus, uint8_t dev, uint8_t func) {
   outl(0xCFC, (cmd | ((uint32_t)cmd << 16)));
 }
 
-inline uint32_t pci_read_bar0(uint8_t bus, uint8_t dev, uint8_t func) {
-  return pci_config_read_raw(bus, dev, func, PCI_BAR0);
+void pci_read_bars(pci_device_desc_t desc, uint32_t bars[6]) {
+  bars[0] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR0);
+  bars[1] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR1);
+  bars[2] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR2);
+  bars[3] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR3);
+  bars[4] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR4);
+  bars[5] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR5);
+}
+
+uint32_t pci_detect_iobase(pci_device_desc_t *desc) {
+  for (int i = 0; i < 6; i++) {
+    uint32_t bar = desc->bar[i];
+    if (bar == 0)
+      continue;
+
+    if (bar & 0x1) {
+      uint32_t iobase = bar & ~0x3;
+      desc->io_base = iobase;
+      serial_printf("  -> IOBase detected at 0x%X (BAR%d)\n", iobase, i);
+      return iobase;
+    }
+  }
+
+  serial_printf("  -> No IOBase found (device uses MMIO only)\n");
+  return 0;
 }
 
 const char *pci_lookup_device(uint16_t vendor_id, uint16_t device_id) {
@@ -112,7 +136,30 @@ void pci_enumerate() {
         if (name)
           serial_printf("  -> Device: %s\n", name);
 
-        pci_handle_device(bus, device, func, vendor, device_id);
+        uint32_t bars[6];
+
+        pci_device_desc_t desc = {
+            .dev_info =
+                {
+                    .vendor_id = vendor,
+                    .device_id = device_id,
+                    .name = name,
+                },
+            .bus = bus,
+            .device = device,
+            .function = func,
+            .bar = {0},
+            .io_base = 0,
+            .enabled = false,
+        };
+
+        pci_read_bars(desc, bars);
+        memcpy(desc.bar, bars, sizeof(uint32_t) * 6);
+
+        uint32_t iobase = pci_detect_iobase(&desc);
+        desc.io_base = iobase;
+
+        pci_handle_device(desc);
       }
     }
   }
