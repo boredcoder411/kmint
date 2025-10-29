@@ -74,12 +74,18 @@ void pci_enable_busmaster(uint8_t bus, uint8_t dev, uint8_t func) {
 }
 
 void pci_read_bars(pci_device_desc_t *desc, uint32_t bars[6]) {
-  bars[0] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR0);
-  bars[1] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR1);
-  bars[2] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR2);
-  bars[3] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR3);
-  bars[4] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR4);
-  bars[5] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR5);
+  bars[0] =
+      pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR0);
+  bars[1] =
+      pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR1);
+  bars[2] =
+      pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR2);
+  bars[3] =
+      pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR3);
+  bars[4] =
+      pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR4);
+  bars[5] =
+      pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR5);
 }
 
 uint32_t pci_detect_iobase(pci_device_desc_t *desc) {
@@ -101,7 +107,8 @@ uint32_t pci_detect_iobase(pci_device_desc_t *desc) {
 }
 
 uint8_t pci_detect_irq(pci_device_desc_t *desc) {
-  uint32_t val = pci_config_read_word_raw(desc->bus, desc->device, desc->function, PCI_INTERRUPT_LINE);
+  uint32_t val = pci_config_read_word_raw(desc->bus, desc->device,
+                                          desc->function, PCI_INTERRUPT_LINE);
   return val & 0xFF;
 }
 
