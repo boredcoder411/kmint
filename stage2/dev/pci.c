@@ -73,13 +73,13 @@ void pci_enable_busmaster(uint8_t bus, uint8_t dev, uint8_t func) {
   outl(0xCFC, (cmd | ((uint32_t)cmd << 16)));
 }
 
-void pci_read_bars(pci_device_desc_t desc, uint32_t bars[6]) {
-  bars[0] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR0);
-  bars[1] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR1);
-  bars[2] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR2);
-  bars[3] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR3);
-  bars[4] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR4);
-  bars[5] = pci_config_read_raw(desc.bus, desc.device, desc.function, PCI_BAR5);
+void pci_read_bars(pci_device_desc_t *desc, uint32_t bars[6]) {
+  bars[0] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR0);
+  bars[1] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR1);
+  bars[2] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR2);
+  bars[3] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR3);
+  bars[4] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR4);
+  bars[5] = pci_config_read_raw(desc->bus, desc->device, desc->function, PCI_BAR5);
 }
 
 uint32_t pci_detect_iobase(pci_device_desc_t *desc) {
@@ -98,6 +98,11 @@ uint32_t pci_detect_iobase(pci_device_desc_t *desc) {
 
   serial_printf("  -> No IOBase found (device uses MMIO only)\n");
   return 0;
+}
+
+uint8_t pci_detect_irq(pci_device_desc_t *desc) {
+  uint32_t val = pci_config_read_word_raw(desc->bus, desc->device, desc->function, PCI_INTERRUPT_LINE);
+  return val & 0xFF;
 }
 
 const char *pci_lookup_device(uint16_t vendor_id, uint16_t device_id) {
@@ -153,13 +158,13 @@ void pci_enumerate() {
             .enabled = false,
         };
 
-        pci_read_bars(desc, bars);
+        pci_read_bars(&desc, bars);
         memcpy(desc.bar, bars, sizeof(uint32_t) * 6);
 
-        uint32_t iobase = pci_detect_iobase(&desc);
-        desc.io_base = iobase;
+        desc.io_base = pci_detect_iobase(&desc);
+        desc.irq = pci_detect_irq(&desc);
 
-        pci_handle_device(desc);
+        pci_handle_device(&desc);
       }
     }
   }

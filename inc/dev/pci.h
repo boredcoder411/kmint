@@ -12,6 +12,7 @@
 #define PCI_BAR3 0x1c
 #define PCI_BAR4 0x20
 #define PCI_BAR5 0x24
+#define PCI_INTERRUPT_LINE 0x3C
 
 typedef struct {
   uint16_t vendor_id;
@@ -26,7 +27,7 @@ typedef struct {
   uint8_t function;
   uint32_t bar[6];
   uint32_t io_base;
-  int irq;
+  uint8_t irq;
   bool enabled;
 } pci_device_desc_t;
 
@@ -37,4 +38,4 @@ void pci_config_write_word(const pci_device_desc_t *dev, uint8_t offset,
 
 const char *pci_lookup_device(uint16_t vendor_id, uint16_t device_id);
 void pci_enumerate();
-void pci_handle_device(pci_device_desc_t desc);
+void pci_handle_device(pci_device_desc_t *desc);
